@@ -1,15 +1,75 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export default function SignUp() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle sign up logic here
-    console.log("Sign up attempt:", { email, password });
+    setError("");
+
+    // Validate inputs
+    if (!name.trim()) {
+      setError("Name is required");
+      return;
+    }
+
+    if (!email.trim()) {
+      setError("Email is required");
+      return;
+    }
+
+    if (!password) {
+      setError("Password is required");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.message || "Registration failed. Please try again.");
+        return;
+      }
+
+      // Registration successful
+      navigate("/signin");
+    } catch (err) {
+      setError("An error occurred. Please try again.");
+      console.error("Registration error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -36,6 +96,30 @@ export default function SignUp() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label
+              htmlFor="name"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Full name
+            </label>
+            <input
+              type="text"
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent outline-none"
+              placeholder="John Doe"
+              required
+            />
+          </div>
+
           <div>
             <label
               htmlFor="email"
@@ -92,9 +176,10 @@ export default function SignUp() {
 
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition-colors mt-6"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition-colors mt-6 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            Sign up
+            {loading ? "Creating account..." : "Sign up"}
           </button>
         </form>
 
@@ -109,6 +194,9 @@ export default function SignUp() {
             </Link>
           </p>
         </div>
+        <p className="text-red-600 font-bold">
+           THIS IS THE UPDATED SIGNUP PAGE
+        </p>
       </div>
     </div>
   );
